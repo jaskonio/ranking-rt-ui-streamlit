@@ -32,7 +32,7 @@ with left_column:
 def df_on_change():
     state = st.session_state["df_editor_league"]
     for index, updates in state["edited_rows"].items():
-        old_person = leagues_df.iloc[index].to_dict()
+        old_person = all_leagues_df.iloc[index].to_dict()
 
         for key in updates.keys():
             old_person[key] = updates[key]
@@ -47,8 +47,9 @@ def df_on_change():
 
 with right_column:
     st.subheader('Lista de Ligas', divider=True)
-
-    leagues_df = pd.DataFrame(data_league)
+    data_league_table = [{"name": data["name"]} for data in data_league]
+    leagues_df = pd.DataFrame(data_league_table)
+    all_leagues_df = pd.DataFrame(data_league)
 
     edited_df = st.data_editor(leagues_df,
         key="df_editor_league",
@@ -76,12 +77,10 @@ with participant_column:
 
     league_name = st.text_input('Nombre Liga', value=current_league["name"], placeholder='Nombre Liga')
 
-    races = pd.DataFrame(current_league["races"])
-    ranking = pd.DataFrame(current_league["ranking"])
+    # ranking = pd.DataFrame(current_league["ranking"])
     participants = pd.DataFrame(current_league["participants"])
 
-    edited_df = st.data_editor(participants,
-        key="df_editor_participants",
+    participants_edited_df = st.data_editor(participants,
         column_order=["first_name", "last_name", "dorsal"],
         width=900,
         height=450)
@@ -89,11 +88,25 @@ with participant_column:
 with races_column:
     current_races_league = [item['id'] for item in current_league['races']]
     races_not_in_current_league = list(filter(lambda item: item["id"] not in current_races_league, data_all_races))
-    news_participants = st.multiselect('Añadir nuevas carreras', races_not_in_current_league, format_func=lambda x: str(x['name'] ), placeholder='Selecciona nuevas carreras')
+    new_races = st.multiselect('Añadir nuevas carreras', races_not_in_current_league, format_func=lambda x: str(x['name'] ), placeholder='Selecciona nuevas carreras')
+
+    for new_race in new_races:
+        order_value = 0
+        if len(current_league["races"]) != 0:
+            order_value = current_league["races"][-1]['order']
+        new_race["order"] = order_value
+        current_league["races"].append(new_race)
+
+    races_df = pd.DataFrame(current_league["races"])
+
+    races_edited_df = st.data_editor(races_df,
+        column_order=["name", "processed", "is_sorted", "order"],
+        disabled=["raw_ranking", "ranking", "participants"])
 
 submitted = st.button("Actualizar")
 if submitted:
     if league_name != '':
-        current_league["participants"] = loads(edited_df.to_json(orient="records"))
-        st.write(current_league["participants"])
-        # league_services.add([{"name": league_name}])
+        current_league["participants"] = loads(participants_edited_df.to_json(orient="records"))
+        current_league["races"] = loads(races_edited_df.to_json(orient="records"))
+        # st.write(current_league)
+        league_services.update(current_league)
