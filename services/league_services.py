@@ -33,3 +33,28 @@ class LeagueServices():
 
         self.notification_services.show_warnning("Hubo un error al añadir")
         return False, response.json()
+
+    def get_all_filter_by_property(self, property_name):
+        all_league = self.get_all()
+        if all_league is None or len(all_league) == 0:
+            return None
+
+        league_filtered = []
+        if property_name in all_league[0]:
+            league_filtered = [league[property_name] for league in all_league]
+
+        return league_filtered
+
+    def get_all_names(self):
+        return self.get_all_filter_by_property('name')
+
+    def add_runners_by_league_id(self, league_id, runners):
+        url = self.hostname + "/leagues/"+ str(league_id) + "/add_runners"
+        response = self.request_services.post(url, json=runners)
+
+        if response.status_code == 200:
+            self.notification_services.show_info("Se han añadido correctamente")
+            return True, []
+
+        self.notification_services.show_warnning("Hubo un error al añadir los runners")
+        return False, response.json()

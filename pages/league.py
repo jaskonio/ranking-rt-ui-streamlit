@@ -1,15 +1,18 @@
 from json import loads
 import streamlit as st
 import pandas as pd
+from io import StringIO
 from services.league_services import LeagueServices
 from services.notification_service import NotificationServices
 from services.request_services import RequestServices
 from services.person_services import PersonServices
 from services.races_services import RacesServices
+from services.runner_csv_loader import RunnerCSV_Loader
 
 league_services = LeagueServices(RequestServices(), NotificationServices())
 participantes_services = PersonServices(RequestServices(), NotificationServices())
 races_services = RacesServices(RequestServices(), NotificationServices())
+runner_csv_loader = RunnerCSV_Loader(races_services, participantes_services, league_services)
 
 data_league = league_services.get_all()
 data_all_participantes = participantes_services.get_all()
@@ -110,3 +113,19 @@ if submitted:
         current_league["races"] = loads(races_edited_df.to_json(orient="records"))
         # st.write(current_league)
         league_services.update(current_league)
+
+with st.form("form_person_csv"):
+    st.subheader('Subir Fichero csv', divider=True)
+    uploaded_file = st.file_uploader("Selecciona un fichero", type=["csv"], accept_multiple_files=False)
+    st.text("Ejemplo del contenido:")
+    st.code("""DORSAL;Nombre;Apellidos;LIGA\n
+    2008;NOMBRE_1;Apellido_1;eliTEAM\n
+    2015;NOMBRE_2;Apellido_2;Otro Nombre de Liga\n""", language='csv')
+
+    submitted = st.form_submit_button("Subir fichero")
+    if submitted and uploaded_file is not None:
+        bytes_data = uploaded_file.read()
+
+        stringio = uploaded_file.getvalue().decode("utf-8").splitlines()
+
+        runner_csv_loader.upload_file(stringio)
