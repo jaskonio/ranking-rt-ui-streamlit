@@ -34,6 +34,17 @@ class LeagueServices():
         self.notification_services.show_warnning("Hubo un error al añadir")
         return False, response.json()
 
+    def delete(self, league_id):
+        url = self.hostname + "/leagues/" + league_id
+        response = self.request_services.delete(url)
+
+        if response.status_code == 200:
+            self.notification_services.show_info("Se ha eliminado correctamente")
+            return True, []
+
+        self.notification_services.show_warnning("Hubo un error al eliminar")
+        return False, response.json()
+
     def get_all_filter_by_property(self, property_name):
         all_league = self.get_all()
         if all_league is None or len(all_league) == 0:

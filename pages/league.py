@@ -1,18 +1,18 @@
 from json import loads
 import streamlit as st
 import pandas as pd
-from io import StringIO
 from services.league_services import LeagueServices
 from services.notification_service import NotificationServices
 from services.request_services import RequestServices
 from services.person_services import PersonServices
 from services.races_services import RacesServices
 from services.runner_csv_loader import RunnerCSV_Loader
+from services.csv_reader import CSV_reader
 
 league_services = LeagueServices(RequestServices(), NotificationServices())
 participantes_services = PersonServices(RequestServices(), NotificationServices())
 races_services = RacesServices(RequestServices(), NotificationServices())
-runner_csv_loader = RunnerCSV_Loader(races_services, participantes_services, league_services)
+runner_csv_loader = RunnerCSV_Loader(races_services, participantes_services, league_services, NotificationServices())
 
 data_league = league_services.get_all()
 data_all_participantes = participantes_services.get_all()
@@ -32,34 +32,22 @@ with left_column:
             if league_name != '':
                 league_services.add([{"name": league_name}])
 
-def df_on_change():
-    state = st.session_state["df_editor_league"]
-    for index, updates in state["edited_rows"].items():
-        old_person = all_leagues_df.iloc[index].to_dict()
-
-        for key in updates.keys():
-            old_person[key] = updates[key]
-
-        league_services.update({
-            "id": old_person["id"],
-            "name": old_person["name"],
-            "races": old_person["races"],
-            "ranking": old_person["ranking"],
-            "participants": old_person["participants"],
-        })
-
 with right_column:
-    st.subheader('Lista de Ligas', divider=True)
-    data_league_table = [{"name": data["name"]} for data in data_league]
-    leagues_df = pd.DataFrame(data_league_table)
-    all_leagues_df = pd.DataFrame(data_league)
+    st.subheader('Eliminar Liga', divider=True)
+    with st.form("form_delete_race"):
+        league_obj = st.selectbox('Nombre de la Liga', data_league, placeholder='Nombre de la Liga', format_func=lambda x: str(x['name'] ))
+        submitted = st.form_submit_button("Delete")
 
-    edited_df = st.data_editor(leagues_df,
-        key="df_editor_league",
-        column_order=["name"],
-        on_change=df_on_change,
-        width=900,
-        height=450)
+        if submitted:
+            if league_obj is not None:
+                league_services.delete(league_obj['id'])
+
+st.subheader('Lista de Ligas', divider=True)
+
+st.dataframe(data_league,
+    column_order=["name"],
+    width=900,
+    height=450)
 
 st.subheader('Editar Liga', divider=True)
 
@@ -80,7 +68,6 @@ with participant_column:
 
     league_name = st.text_input('Nombre Liga', value=current_league["name"], placeholder='Nombre Liga')
 
-    # ranking = pd.DataFrame(current_league["ranking"])
     participants = pd.DataFrame(current_league["participants"])
 
     participants_edited_df = st.data_editor(participants,
@@ -111,12 +98,14 @@ if submitted:
     if league_name != '':
         current_league["participants"] = loads(participants_edited_df.to_json(orient="records"))
         current_league["races"] = loads(races_edited_df.to_json(orient="records"))
-        # st.write(current_league)
         league_services.update(current_league)
 
 with st.form("form_person_csv"):
     st.subheader('Subir Fichero csv', divider=True)
     uploaded_file = st.file_uploader("Selecciona un fichero", type=["csv"], accept_multiple_files=False)
+    exclude_header = st.checkbox("Excluir encabezado", value=True)
+
+
     st.text("Ejemplo del contenido:")
     st.code("""DORSAL;Nombre;Apellidos;LIGA\n
     2008;NOMBRE_1;Apellido_1;eliTEAM\n
@@ -127,5 +116,5 @@ with st.form("form_person_csv"):
         bytes_data = uploaded_file.read()
 
         stringio = uploaded_file.getvalue().decode("utf-8").splitlines()
-
-        runner_csv_loader.upload_file(stringio)
+        rows = CSV_reader.convertCsvToPersonFile(data=stringio, exclude_header=exclude_header)
+        runner_csv_loader.upload_file(rows)
