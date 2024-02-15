@@ -1,8 +1,9 @@
 from services.notification_service import NotificationServices
 from services.request_services import RequestServices
+from services.config_services import ConfigServices
 
 class PersonServices():
-    hostname = "http://localhost:8000"
+    hostname = ConfigServices.getBackendConfig('url')
 
     def __init__(self, requestServices:RequestServices, notificationServices:NotificationServices) -> None:
         self.notification_services = notificationServices

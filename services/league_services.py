@@ -1,8 +1,9 @@
+from services.config_services import ConfigServices
 from services.notification_service import NotificationServices
 from services.request_services import RequestServices
 
 class LeagueServices():
-    hostname = "http://localhost:8000"
+    hostname = ConfigServices.getBackendConfig('url')
 
     def __init__(self, requestServices:RequestServices, notificationServices:NotificationServices) -> None:
         self.notification_services = notificationServices
