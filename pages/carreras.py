@@ -1,11 +1,7 @@
 import streamlit as st
-from services.notification_service import NotificationServices
-from services.request_services import RequestServices
-from services.races_services import RacesServices
+from services.all_services import race_info_service
 
-races_services = RacesServices(RequestServices(), NotificationServices())
-
-all_races = races_services.get_all()
+all_races = race_info_service.get_all()
 
 st.title("Administracion de Carreras")
 
@@ -16,22 +12,22 @@ with left_column:
     with st.form("form_race"):
         race_name = st.text_input('Nombre de la carrera', placeholder='Nombre de carrrera')
         url = st.text_input('Url', placeholder='http://')
-        platform_inscriptions = st.selectbox('Plataforma', [1,2,3])
+        platform_inscriptions = st.selectbox('Plataforma', ["SPORTMANIACS_LATEST"])
         submitted = st.form_submit_button("Añadir")
 
         if submitted:
             if race_name != '' and url != '':
-                races_services.add({
+                race_info_service.add({
                     "name": race_name,
                     "url": url,
-                    "platform_inscriptions": int(platform_inscriptions),
+                    "platform": platform_inscriptions
                 })
 
 with right_column:
     st.subheader('Lista de carreras', divider=True)
 
     edited_df = st.dataframe(all_races,
-        column_order=["name", "url", "processed", "platform_inscriptions"])
+        column_order=["name", "url", "processed", "platform", "processed"])
 
 
 st.subheader("Acciones")
@@ -46,7 +42,7 @@ with process_column:
 
         if submitted:
             if race_obj is not None:
-                races_services.process(race_obj["id"])
+                race_info_service.process_by_id(race_obj["id"])
 
 with delete_column:
     st.subheader('Eliminar una carrera', divider=True)
@@ -56,4 +52,4 @@ with delete_column:
 
         if submitted:
             if race_obj is not None:
-                races_services.delete(race_obj["id"])
+                race_info_service.delete(race_obj["id"])

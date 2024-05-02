@@ -1,9 +1,9 @@
 import streamlit as st
 
 st.set_page_config(
-     page_title='RT Rankings',
+     page_title='Ranking UI',
      layout="wide",
      initial_sidebar_state="expanded"
 )
 
-st.title("Rankings")
+st.title("Ranking UI")
